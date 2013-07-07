@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rharriso/waid/entry"
 	"log"
+	"os"
 	"time"
 )
 
@@ -16,12 +18,17 @@ var (
 	cmdFlags = map[string]*flag.FlagSet{
 		"start": flag.NewFlagSet("start", flag.ExitOnError),
 		"stop":  flag.NewFlagSet("stop", flag.ExitOnError),
+		"list":  flag.NewFlagSet("list", flag.ExitOnError),
 	}
+
 	// flag values
 	msg   *string
 	dbMap *gorp.DbMap
 )
 
+/*
+	main ->
+*/
 func main() {
 	// connect to db
 	dbConnect()
@@ -46,31 +53,67 @@ func main() {
 		start()
 	case "stop":
 		stop()
+	case "list":
+		list()
 	}
 }
 
 /*
-	start ->
+	start
 */
 func start() {
+	// insert a new entry starting now
 	e := &entry.Entry{Start: time.Now().Unix(), Msg: *msg}
 	err := dbMap.Insert(e)
 	doPanic(err)
-
-	fmt.Println(e.Id)
-
-	var entries []*entry.Entry
-	_, err = dbMap.Select(&entries, "SELECT * FROM entries")
-	doPanic(err)
-
-	fmt.Println(entries)
 }
 
 /*
-	stop ->
+	stop the current entry.
 */
 func stop() {
-	fmt.Println("stop", *msg)
+	// find most recent entry
+	var entries []*entry.Entry
+	_, err := dbMap.Select(&entries, "SELECT * FROM entries ORDER BY start_time DESC LIMIT 1")
+	doPanic(err)
+
+	// check for active entry
+	if len(entries) == 0 || entries[0].End != 0 {
+		fmt.Println("No active entry")
+		return
+	}
+
+	// update entry values
+	e := *entries[0]
+	e.End = time.Now().Unix()
+
+	if *msg != "" {
+		e.Msg = *msg
+	}
+
+	if e.Msg == "" {
+		fmt.Print("Enter a message for this entry: ")
+		in := bufio.NewReader(os.Stdin)
+		input, _, err := in.ReadLine()
+		doPanic(err)
+		e.Msg = string(input)
+	}
+
+	// update table entry
+	dbMap.Update(&e)
+}
+
+/*
+	show all the entries in the database
+*/
+func list() {
+	var entries []*entry.Entry
+	_, err := dbMap.Select(&entries, "SELECT * FROM entries")
+	doPanic(err)
+
+	for _, e := range entries {
+		fmt.Println(*e)
+	}
 }
 
 /*
