@@ -49,24 +49,49 @@ func main() {
 	}
 }
 
+/*
+	start ->
+*/
 func start() {
-	entry := entry.Entry{Start: time.Now().Unix(), Msg: *msg}
-	fmt.Println("start", entry)
+	e := &entry.Entry{Start: time.Now().Unix(), Msg: *msg}
+	err := dbMap.Insert(e)
+	doPanic(err)
+
+	fmt.Println(e.Id)
+
+	var entries []*entry.Entry
+	_, err = dbMap.Select(&entries, "SELECT * FROM entries")
+	doPanic(err)
+
+	fmt.Println(entries)
 }
 
+/*
+	stop ->
+*/
 func stop() {
 	fmt.Println("stop", *msg)
 }
 
+/*
+	dbConnect ->
+		connect to databse and create tables maybe
+*/
 func dbConnect() {
-	db, err := sql.Open("sqlite3", "waid.db")
+	db, err := sql.Open("sqlite3", "./waid.db")
+	doPanic(err)
+
+	dbMap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+	// add entries table
+	dbMap.AddTableWithName(entry.Entry{}, "entries").SetKeys(true, "Id")
+	dbMap.CreateTablesIfNotExists()
+}
+
+/*
+	doPanic
+*/
+func doPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
-
-	dbmap = &gorp.DbMap{suffix: "waid"}
-	// add entries tabless
-	entries := dbmap.AddTableWithName(entry.Entry{}, "entries").SetKeys(true, "Id")
-
-	fmt.Println(db.Driver())
 }
