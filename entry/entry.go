@@ -18,6 +18,15 @@ type Entry struct {
 }
 
 /*
+  return array of all Entries
+*/
+func All(dbMap *gorp.DbMap) ([]*Entry, error) {
+	var entries []*Entry
+	_, err := dbMap.Select(&entries, "SELECT * FROM entries")
+	return entries, err
+}
+
+/*
   returns true if the entry has an End time
 */
 func (e *Entry) Ended() bool {

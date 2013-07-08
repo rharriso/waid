@@ -114,8 +114,7 @@ func stop() {
 	show all the entries in the database
 */
 func list() {
-	var entries []*entry.Entry
-	_, err := dbMap.Select(&entries, "SELECT * FROM entries")
+	entries, err := entry.All(dbMap)
 	doPanic(err)
 
 	fmt.Println("All Entries")
@@ -132,8 +131,7 @@ func list() {
 	empty the entries
 */
 func clear() {
-	var entries []*entry.Entry
-	_, err := dbMap.Select(&entries, "SELECT * FROM entries")
+	entries, err := entry.All(dbMap)
 	doPanic(err)
 
 	for _, e := range entries {
