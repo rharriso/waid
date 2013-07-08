@@ -36,7 +36,16 @@ func main() {
 
 	// get the command and flags
 	flag.Parse()
-	cmd := flag.Args()[0]
+
+	//if nothing passed do clear
+	var cmd string
+	if len(flag.Args()) == 0 {
+		list()
+		return
+	} else {
+		cmd = flag.Args()[0]
+	}
+
 	flags, ok := cmdFlags[cmd]
 
 	// check for valid command
