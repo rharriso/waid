@@ -19,6 +19,7 @@ var (
 		"start": flag.NewFlagSet("start", flag.ExitOnError),
 		"stop":  flag.NewFlagSet("stop", flag.ExitOnError),
 		"list":  flag.NewFlagSet("list", flag.ExitOnError),
+		"clear": flag.NewFlagSet("clear", flag.ExitOnError),
 	}
 
 	// flag values
@@ -55,6 +56,8 @@ func main() {
 		stop()
 	case "list":
 		list()
+	case "clear":
+		clear()
 	}
 }
 
@@ -79,13 +82,13 @@ func stop() {
 	doPanic(err)
 
 	// check for active entry
-	if len(entries) == 0 || !entries[0].Ended() {
+	if len(entries) == 0 || entries[0].Ended() {
 		fmt.Println("No active entry")
 		return
 	}
 
 	// update entry values
-	e := *entries[0]
+	e := entries[0]
 	e.End = time.Now()
 
 	// set msg to tagged value
@@ -103,8 +106,8 @@ func stop() {
 	}
 
 	// update table entry
-	dbMap.Update(&e)
-	fmt.Println("Activity Finished: ", e)
+	dbMap.Update(e)
+	fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
 }
 
 /*
@@ -115,8 +118,26 @@ func list() {
 	_, err := dbMap.Select(&entries, "SELECT * FROM entries")
 	doPanic(err)
 
+	fmt.Println("All Entries")
+	fmt.Println("-------------------------------------")
+
 	for _, e := range entries {
-		fmt.Println(*e)
+		fmt.Printf("-- %s\t%s\n", e.TimeString(), e.Msg)
+	}
+
+	fmt.Println("-------------------------------------")
+}
+
+/*
+	empty the entries
+*/
+func clear() {
+	var entries []*entry.Entry
+	_, err := dbMap.Select(&entries, "SELECT * FROM entries")
+	doPanic(err)
+
+	for _, e := range entries {
+		dbMap.Delete(e)
 	}
 }
 

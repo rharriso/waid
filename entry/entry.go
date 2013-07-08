@@ -2,14 +2,16 @@ package entry
 
 import (
 	"bytes"
+	"github.com/coopernurse/gorp"
 	"math"
+	"strconv"
 	"time"
 )
 
 type Entry struct {
 	Id        int64     `db:"id"`
-	startTime int64     `db:"start_time"`
-	endTime   int64     `db:"end_time"`
+	StartTime int64     `db:"start_time"`
+	EndTime   int64     `db:"end_time"`
 	Msg       string    `db:"message"`
 	Start     time.Time `db:"-"` // db ignore
 	End       time.Time `db:"-"` // db ignore
@@ -32,29 +34,21 @@ func (e *Entry) Started() bool {
 /*
   Return formated string describing the entry
 */
-func (e *Entry) String() string {
-	// write to buffer
+func (e *Entry) TimeString() string {
 	var buffer bytes.Buffer
-	buffer.WriteString(e.Msg)
-	buffer.WriteString(": ")
 
 	// get duration variables
 	d := e.Duration()
 	hours := int(math.Floor(d.Hours()))
-	min := int(math.Floor(d.Minutes()))
-	sec := int(math.Floor(d.Seconds()))
+	min := int(math.Floor(d.Minutes())) % 60
+	sec := int(math.Floor(d.Seconds())) % 60
 
-	// maybe write hours
-	if hours > 0 {
-		buffer.WriteString(string(hours))
-		buffer.WriteString("h ")
-	}
-
-	// write minutes a seconds
-	buffer.WriteString(string(min))
+	buffer.WriteString(strconv.Itoa(hours))
+	buffer.WriteString("h ")
+	buffer.WriteString(strconv.Itoa(min))
 	buffer.WriteString("m ")
-	buffer.WriteString(string(sec))
-	buffer.WriteString("s ")
+	buffer.WriteString(strconv.Itoa(sec))
+	buffer.WriteString("s")
 
 	return buffer.String()
 }
@@ -65,7 +59,7 @@ func (e *Entry) String() string {
 func (e *Entry) Duration() time.Duration {
 	var d time.Duration
 
-	if e.Ended() {
+	if !e.Ended() {
 		d = time.Now().Sub(e.Start)
 	} else {
 		d = e.End.Sub(e.Start)
@@ -81,34 +75,33 @@ func (e *Entry) Duration() time.Duration {
 /*
   Set the startTime and endTime variables based on the time.Time members
 */
-func (e *Entry) PreUpdate() {
+func (e *Entry) PreUpdate(s gorp.SqlExecutor) error {
 	// default to now
 	if !e.Started() {
 		e.Start = time.Now()
 	}
-	e.startTime = e.Start.Unix()
+	e.StartTime = e.Start.Unix()
 
 	if !e.Ended() {
-		e.endTime = e.End.Unix()
+		e.EndTime = e.End.Unix()
 	}
+
+	return nil
 }
 
 /*
   see: PreUpdate
 */
-func (e *Entry) PreInsert() {
-	panic("FUCK")
-	e.PreUpdate()
+func (e *Entry) PreInsert(s gorp.SqlExecutor) error {
+	return e.PreUpdate(s)
 }
 
 /*
   Set the Start and End variables based on the database values
 */
-func (e *Entry) PostGet() {
-	if e.Started() {
-		e.Start = time.Unix(e.startTime, 0)
-	}
-	if e.Ended() {
-		e.End = time.Unix(e.startTime, 0)
-	}
+func (e *Entry) PostGet(s gorp.SqlExecutor) error {
+	e.Start = time.Unix(e.StartTime, 0)
+	e.End = time.Unix(e.EndTime, 0)
+
+	return nil
 }
