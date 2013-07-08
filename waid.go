@@ -63,9 +63,10 @@ func main() {
 */
 func start() {
 	// insert a new entry starting now
-	e := &entry.Entry{Start: time.Now().Unix(), Msg: *msg}
-	err := dbMap.Insert(e)
+	e := entry.Entry{Msg: *msg}
+	err := dbMap.Insert(&e)
 	doPanic(err)
+	fmt.Println("Starting activity: ", e.Msg)
 }
 
 /*
@@ -78,19 +79,21 @@ func stop() {
 	doPanic(err)
 
 	// check for active entry
-	if len(entries) == 0 || entries[0].End != 0 {
+	if len(entries) == 0 || !entries[0].Ended() {
 		fmt.Println("No active entry")
 		return
 	}
 
 	// update entry values
 	e := *entries[0]
-	e.End = time.Now().Unix()
+	e.End = time.Now()
 
+	// set msg to tagged value
 	if *msg != "" {
 		e.Msg = *msg
 	}
 
+	// if the message is empty, ask the ser for one
 	if e.Msg == "" {
 		fmt.Print("Enter a message for this entry: ")
 		in := bufio.NewReader(os.Stdin)
@@ -101,6 +104,7 @@ func stop() {
 
 	// update table entry
 	dbMap.Update(&e)
+	fmt.Println("Activity Finished: ", e)
 }
 
 /*
