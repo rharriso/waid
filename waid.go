@@ -10,6 +10,7 @@ import (
 	"github.com/rharriso/waid/entry"
 	"log"
 	"os"
+	"os/user"
 	"time"
 )
 
@@ -153,7 +154,9 @@ func clear() {
 		connect to databse and create tables maybe
 */
 func dbConnect() {
-	db, err := sql.Open("sqlite3", "./waid.db")
+	usr, err := user.Current()
+	doPanic(err)
+	db, err := sql.Open("sqlite3", usr.HomeDir+"/.waid.db")
 	doPanic(err)
 
 	dbMap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}

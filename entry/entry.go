@@ -90,10 +90,7 @@ func (e *Entry) PreUpdate(s gorp.SqlExecutor) error {
 		e.Start = time.Now()
 	}
 	e.StartTime = e.Start.Unix()
-
-	if !e.Ended() {
-		e.EndTime = e.End.Unix()
-	}
+	e.EndTime = e.End.Unix()
 
 	return nil
 }
