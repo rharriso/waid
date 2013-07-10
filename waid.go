@@ -17,6 +17,7 @@ import (
 var (
 	// list of commands
 	cmdFlags = map[string]*flag.FlagSet{
+		"help":  flag.NewFlagSet("help", flag.ExitOnError),
 		"start": flag.NewFlagSet("start", flag.ExitOnError),
 		"stop":  flag.NewFlagSet("stop", flag.ExitOnError),
 		"list":  flag.NewFlagSet("list", flag.ExitOnError),
@@ -41,7 +42,7 @@ func main() {
 	//if nothing passed do clear
 	var cmd string
 	if len(flag.Args()) == 0 {
-		list()
+		help()
 		return
 	} else {
 		cmd = flag.Args()[0]
@@ -68,7 +69,10 @@ func main() {
 		list()
 	case "clear":
 		clear()
+	case "help":
+		help()
 	}
+
 }
 
 /*
@@ -147,6 +151,24 @@ func clear() {
 	for _, e := range entries {
 		dbMap.Delete(e)
 	}
+}
+
+/*
+	Help out the user
+*/
+func help() {
+	fmt.Println("Usage: waid [command] [options]\n")
+
+	fmt.Println("Commands:")
+	fmt.Println("\tstart\t- start a new task")
+	fmt.Println("\tstop\t- complete current task")
+	fmt.Println("\tlist\t- list all tasks")
+	fmt.Println("\tclear\t- clear list of tasks")
+
+	fmt.Println("Options:")
+	fmt.Println("\t-m\t- add message to the current task on start or stop.")
+
+	fmt.Println("")
 }
 
 /*
