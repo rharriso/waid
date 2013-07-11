@@ -168,10 +168,10 @@ func help() {
 	fmt.Println("Usage: waid [command] [options]\n")
 
 	fmt.Println("Commands:")
-	fmt.Println("\tstart\t- start a new task")
-	fmt.Println("\tstop\t- complete current task")
-	fmt.Println("\tlist\t- list all tasks")
-	fmt.Println("\tclear\t- clear list of tasks")
+	fmt.Println("\tstart\t- start a new entry")
+	fmt.Println("\tstop\t- complete current entry")
+	fmt.Println("\tlist\t- list all entry")
+	fmt.Println("\tclear\t- clear list of entry")
 
 	fmt.Println("Options:")
 	fmt.Println("\t-m\t- add message to the current task on start or stop.")
