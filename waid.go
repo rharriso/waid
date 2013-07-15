@@ -9,7 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rharriso/waid/entry"
 	"log"
-	"math"
 	"os"
 	"os/user"
 	"time"
@@ -135,18 +134,21 @@ func list() {
 	fmt.Println("\nAll Entries")
 	fmt.Println("-------------------------------------")
 
-	var totalHours, totalMinutes, totalSeconds int
+	var totalHours, totalMinutes, totalSeconds float64
 	totalHours = 0
 
 	for _, e := range entries {
 		fmt.Printf("-- %s\t%s\n", e.TimeString(), e.Msg)
-		totalHours += int(math.Floor(e.Duration().Hours()))
-		totalMinutes += int(math.Floor(e.Duration().Minutes()))
-		totalSeconds += int(math.Floor(e.Duration().Seconds()))
+		totalHours += e.Duration().Hours()
+		totalMinutes += e.Duration().Minutes()
+		totalSeconds += e.Duration().Seconds()
 	}
 
 	fmt.Println("-------------------------------------")
-	fmt.Printf("Total - %dh %dm %ds\n\n", totalHours, totalMinutes, totalSeconds)
+	fmt.Printf("Total - %dh %dm %ds\n\n",
+		int(totalHours),
+		int(totalMinutes)%60,
+		int(totalSeconds)%60)
 }
 
 /*
