@@ -13,7 +13,7 @@ waid [command] [options]
 ###Commands
 
 * **start** - start a new entry
-* **clear** - stop the current entry
+* **stop** - stop the current entry
 * **list** - list all the entries
 * **clear** - remove all tasks in the list
 
