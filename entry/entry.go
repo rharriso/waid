@@ -18,30 +18,54 @@ type Entry struct {
 }
 
 /*
-  return array of all Entries
+	return array of all Entries
 */
-func All(dbMap *gorp.DbMap) ([]*Entry, error) {
+func All(dbMap *gorp.DbMap) []*Entry {
 	var entries []*Entry
 	_, err := dbMap.Select(&entries, "SELECT * FROM entries")
-	return entries, err
+
+	if err != nil {
+		panic(err)
+	}
+
+	return entries
 }
 
 /*
-  returns true if the entry has an End time
+	return the latest 
+*/
+func Latest(dbMap *gorp.DbMap) *Entry {
+	// find most recent entry
+	var entries []*Entry
+	_, err := dbMap.Select(&entries, "SELECT * FROM entries ORDER BY start_time DESC LIMIT 1")
+
+	if err != nil {
+		panic(err)
+	}
+
+	if len(entries) > 0 {
+		return entries[0]
+	}
+	return nil
+
+}
+
+/*
+	returns true if the entry has an End time
 */
 func (e *Entry) Ended() bool {
 	return e.End.Unix() >= 0
 }
 
 /*
-  returns true if the entry has a Start time
+	returns true if the entry has a Start time
 */
 func (e *Entry) Started() bool {
 	return e.Start.Unix() >= 0
 }
 
 /*
-  Return formated string describing the entry
+	Return formated string describing the entry
 */
 func (e *Entry) TimeString() string {
 	var buffer bytes.Buffer
@@ -63,7 +87,7 @@ func (e *Entry) TimeString() string {
 }
 
 /*
-  Return the time passed between the start time and the end time or now.
+	Return the time passed between the start time and the end time or now.
 */
 func (e *Entry) Duration() time.Duration {
 	var d time.Duration
@@ -78,11 +102,10 @@ func (e *Entry) Duration() time.Duration {
 }
 
 /*
-  Gorp Hooks
+	Gorp Hooks
 */
-
 /*
-  Set the startTime and endTime variables based on the time.Time members
+	Set the startTime and endTime variables based on the time.Time members
 */
 func (e *Entry) PreUpdate(s gorp.SqlExecutor) error {
 	// default to now
@@ -96,14 +119,14 @@ func (e *Entry) PreUpdate(s gorp.SqlExecutor) error {
 }
 
 /*
-  see: PreUpdate
+	see: PreUpdate
 */
 func (e *Entry) PreInsert(s gorp.SqlExecutor) error {
 	return e.PreUpdate(s)
 }
 
 /*
-  Set the Start and End variables based on the database values
+	Set the Start and End variables based on the database values
 */
 func (e *Entry) PostGet(s gorp.SqlExecutor) error {
 	e.Start = time.Unix(e.StartTime, 0)

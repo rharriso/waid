@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"strings"
 	"time"
 )
 
@@ -64,7 +65,7 @@ func main() {
 	case "start":
 		start()
 	case "stop":
-		stop()
+		stop(true)
 	case "list":
 		list()
 	case "clear":
@@ -76,41 +77,51 @@ func main() {
 }
 
 /*
-	start
+	Checks for active entry, asks to end it.
+	Creates new activity
 */
 func start() {
+	e := entry.Latest(dbMap)
+
+	//if active entry, ask to end
+	if e != nil && !e.Ended() {
+		fmt.Printf("End Activity (%s) (Y/n):", e.Msg)
+		var answer string
+		fmt.Scanf("%s", &answer)
+
+		// if stopping then close old answer
+		if strings.ToUpper(answer) == "Y" {
+			stop(false)
+		} else {
+			return
+		}
+	}
+
 	// insert a new entry starting now
-	e := entry.Entry{Msg: *msg}
-	err := dbMap.Insert(&e)
+	newEntry := entry.Entry{Msg: *msg}
+	err := dbMap.Insert(&newEntry)
 	doPanic(err)
-	fmt.Println("Starting activity: ", e.Msg)
+	fmt.Println("Starting activity: ", newEntry.Msg)
 }
 
 /*
-	stop the current entry.
+	Find the active entry.
+	Ask user to enter a message if none has been set yet.
+	Set the end time to now, and save.
 */
-func stop() {
-	// find most recent entry
-	var entries []*entry.Entry
-	_, err := dbMap.Select(&entries, "SELECT * FROM entries ORDER BY start_time DESC LIMIT 1")
-	doPanic(err)
+func stop(fromCommand bool) {
+	e := entry.Latest(dbMap)
 
 	// check for active entry
-	if len(entries) == 0 || entries[0].Ended() {
+	if e == nil || e.Ended() {
 		fmt.Println("No active entry")
 		return
 	}
 
-	// update entry values
-	e := entries[0]
-	e.End = time.Now()
-
-	// set msg to tagged value
-	if *msg != "" {
+	if fromCommand && *msg != "" {
 		e.Msg = *msg
 	}
 
-	// if the message is empty, ask the ser for one
 	if e.Msg == "" {
 		fmt.Print("Enter a message for this entry: ")
 		in := bufio.NewReader(os.Stdin)
@@ -119,7 +130,7 @@ func stop() {
 		e.Msg = string(input)
 	}
 
-	// update table entry
+	e.End = time.Now()
 	dbMap.Update(e)
 	fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
 }
@@ -128,8 +139,7 @@ func stop() {
 	show all the entries in the database
 */
 func list() {
-	entries, err := entry.All(dbMap)
-	doPanic(err)
+	entries := entry.All(dbMap)
 
 	fmt.Println("\nAll Entries")
 	fmt.Println("-------------------------------------")
@@ -155,8 +165,7 @@ func list() {
 	empty the entries
 */
 func clear() {
-	entries, err := entry.All(dbMap)
-	doPanic(err)
+	entries := entry.All(dbMap)
 
 	for _, e := range entries {
 		dbMap.Delete(e)
