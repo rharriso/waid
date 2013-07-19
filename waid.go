@@ -85,12 +85,8 @@ func start() {
 
 	//if active entry, ask to end
 	if e != nil && !e.Ended() {
-		fmt.Printf("End Activity (%s) (Y/n):", e.Msg)
-		var answer string
-		fmt.Scanf("%s", &answer)
-
-		// if stopping then close old answer
-		if strings.ToUpper(answer) == "Y" {
+		// do they want to close the old one?
+		if confirm(fmt.Sprintf("End Activity (%s)", e.Msg)) {
 			stop(false)
 		} else {
 			return
@@ -165,10 +161,14 @@ func list() {
 	empty the entries
 */
 func clear() {
-	entries := entry.All(dbMap)
+	if confirm("Delete all the entries? ") {
+		list()
+		entries := entry.All(dbMap)
 
-	for _, e := range entries {
-		dbMap.Delete(e)
+		for _, e := range entries {
+			dbMap.Delete(e)
+		}
+		fmt.Println("Entries Deleted.")
 	}
 }
 
@@ -213,4 +213,16 @@ func doPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+/*
+	confirm
+		ask the user if they really want to do that
+*/
+func confirm(msg string) bool {
+	fmt.Print(fmt.Sprintf("%s (Y/n): ", msg))
+	var answer string
+	fmt.Scanf("%s", &answer)
+
+	return strings.ToUpper(answer) == "Y"
 }
