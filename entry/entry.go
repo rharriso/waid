@@ -32,7 +32,7 @@ func All(dbMap *gorp.DbMap) []*Entry {
 }
 
 /*
-	return the latest 
+	return the latest
 */
 func Latest(dbMap *gorp.DbMap) *Entry {
 	// find most recent entry
@@ -99,6 +99,19 @@ func (e *Entry) Duration() time.Duration {
 	}
 
 	return d
+}
+
+/*
+	Set the start and end times based on a duraction
+*/
+func (e *Entry) SetDuration(s string) {
+	duration, err := time.ParseDuration(s)
+	if err != nil {
+		panic(err)
+	}
+
+	e.Start = time.Now()
+	e.End = e.Start.Add(duration)
 }
 
 /*

@@ -21,12 +21,14 @@ var (
 		"help":  flag.NewFlagSet("help", flag.ExitOnError),
 		"start": flag.NewFlagSet("start", flag.ExitOnError),
 		"stop":  flag.NewFlagSet("stop", flag.ExitOnError),
+		"add":   flag.NewFlagSet("add", flag.ExitOnError),
 		"list":  flag.NewFlagSet("list", flag.ExitOnError),
 		"clear": flag.NewFlagSet("clear", flag.ExitOnError),
 	}
 
 	// flag values
 	msg   *string
+	dur   *string
 	dbMap *gorp.DbMap
 )
 
@@ -58,6 +60,7 @@ func main() {
 
 	//get message from remaining flags
 	msg = flags.String("m", "", "message for activity")
+	dur = flags.String("t", "", "duration for activity")
 	flags.Parse(flag.Args()[1:])
 
 	// run the command with flags
@@ -66,6 +69,8 @@ func main() {
 		start()
 	case "stop":
 		stop(true)
+	case "add":
+		add()
 	case "list":
 		list()
 	case "clear":
@@ -81,9 +86,8 @@ func main() {
 	Creates new activity
 */
 func start() {
-	e := entry.Latest(dbMap)
-
 	//if active entry, ask to end
+	e := entry.Latest(dbMap)
 	if e != nil && !e.Ended() {
 		// do they want to close the old one?
 		if confirm(fmt.Sprintf("End Activity (%s)", e.Msg)) {
@@ -129,6 +133,17 @@ func stop(fromCommand bool) {
 	e.End = time.Now()
 	dbMap.Update(e)
 	fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
+}
+
+/*
+	add an entry directly
+*/
+func add() {
+	e := entry.Entry{Msg: *msg}
+	e.SetDuration(*dur)
+	dbMap.Insert(&e)
+
+	fmt.Println("Activity Added:", e.Msg, "|", e.TimeString())
 }
 
 /*
