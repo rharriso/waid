@@ -196,11 +196,13 @@ func help() {
 	fmt.Println("Commands:")
 	fmt.Println("\tstart\t- start a new entry")
 	fmt.Println("\tstop\t- complete current entry")
+	fmt.Println("\tadd\t- add a complete entry")
 	fmt.Println("\tlist\t- list all entry")
 	fmt.Println("\tclear\t- clear list of entry")
 
 	fmt.Println("Options:")
 	fmt.Println("\t-m\t- add message to the current task on start or stop.")
+	fmt.Println("\t-t\t- time (see go duration format), used for adding entries.")
 
 	fmt.Println("")
 }
