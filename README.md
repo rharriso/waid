@@ -14,9 +14,11 @@ waid [command] [options]
 
 * **start** - start a new entry
 * **stop** - stop the current entry
+* **add** - add an entry
 * **list** - list all the entries
 * **clear** - remove all tasks in the list
 
 ###Options
 
 * **-m** - Add a message to the current task on start or stop
+* **-t** - Set the time for a entry (used on add)
