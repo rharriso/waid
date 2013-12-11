@@ -159,9 +159,13 @@ func list() {
 
 	for _, e := range entries {
 		if e.Ended() {
-			fmt.Printf("-- %s\t%s\n", e.TimeString(), e.Msg)
+			fmt.Printf("-- %d\t%s\t%s\n", e.Id, e.TimeString(), e.Msg)
 		} else {
-			fmt.Printf("-- \033[033m %s\t%s%s\n", e.TimeString(), e.Msg, " <= active \033[0m")
+			fmt.Printf("-- \033[033m%d\t%s\t%s%s\n",
+				e.Id,
+				e.TimeString(),
+				e.Msg,
+				" <= active \033[0m")
 		}
 
 		total = total + e.Duration()
