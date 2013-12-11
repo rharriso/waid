@@ -155,21 +155,23 @@ func list() {
 	fmt.Println("\nAll Entries")
 	fmt.Println("-------------------------------------")
 
-	var totalHours, totalMinutes, totalSeconds float64
-	totalHours = 0
+	var total time.Duration
 
 	for _, e := range entries {
-		fmt.Printf("-- %s\t%s\n", e.TimeString(), e.Msg)
-		totalHours += e.Duration().Hours()
-		totalMinutes += e.Duration().Minutes()
-		totalSeconds += e.Duration().Seconds()
+		if e.Ended() {
+			fmt.Printf("-- %s\t%s\n", e.TimeString(), e.Msg)
+		} else {
+			fmt.Printf("-- \033[033m %s\t%s%s\n", e.TimeString(), e.Msg, " <= active \033[0m")
+		}
+
+		total = total + e.Duration()
 	}
 
 	fmt.Println("-------------------------------------")
 	fmt.Printf("Total - %dh %dm %ds\n\n",
-		int(totalHours),
-		int(totalMinutes)%60,
-		int(totalSeconds)%60)
+		int(total.Hours()),
+		int(total.Minutes())%60,
+		int(total.Seconds())%60)
 }
 
 /*
