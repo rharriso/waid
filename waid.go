@@ -2,15 +2,11 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
 	"flag"
 	"fmt"
-	"github.com/coopernurse/gorp"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/rharriso/waid/entry"
 	"log"
 	"os"
-	"os/user"
 	"strings"
 	"time"
 )
@@ -27,9 +23,8 @@ var (
 	}
 
 	// flag values
-	msg   *string
-	dur   *string
-	dbMap *gorp.DbMap
+	msg *string
+	dur *string
 )
 
 /*
@@ -211,22 +206,6 @@ func help() {
 	fmt.Println("\t-t\t- time (see go duration format), used for adding entries.")
 
 	fmt.Println("")
-}
-
-/*
-	dbConnect ->
-		connect to databse and create tables maybe
-*/
-func dbConnect() {
-	usr, err := user.Current()
-	doPanic(err)
-	db, err := sql.Open("sqlite3", usr.HomeDir+"/.waid.db")
-	doPanic(err)
-
-	dbMap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-	// add entries table
-	dbMap.AddTableWithName(entry.Entry{}, "entries").SetKeys(true, "Id")
-	dbMap.CreateTablesIfNotExists()
 }
 
 /*
