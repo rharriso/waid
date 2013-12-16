@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"github.com/codegangsta/martini"
-	//"github.com/codegangsta/martini-contrib/binding"
+	"github.com/codegangsta/martini-contrib/binding"
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/coopernurse/gorp"
 	_ "github.com/mattn/go-sqlite3"
@@ -21,8 +21,14 @@ func main() {
 	m.Use(dbConnect())
 
 	// index route
-	m.Get("/", func(r render.Render) {
+	m.Get("/entries", func(r render.Render) {
 		r.JSON(200, entry.All(dbMap))
+	})
+
+	// add route
+	m.Post("/entries", binding.Form(entry.Entry{}), func(e entry.Entry, r render.Render) {
+		dbMap.Insert(&e)
+		r.JSON(200, e)
 	})
 
 	// initialize server
