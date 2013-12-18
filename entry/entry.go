@@ -112,6 +112,7 @@ func (e *Entry) SetDuration(s string) {
 
 	e.Start = time.Now()
 	e.End = e.Start.Add(duration)
+	e.setUnixTimes()
 }
 
 /*
@@ -125,8 +126,7 @@ func (e *Entry) PreUpdate(s gorp.SqlExecutor) error {
 	if !e.Started() {
 		e.Start = time.Now()
 	}
-	e.StartTime = e.Start.Unix()
-	e.EndTime = e.End.Unix()
+	e.setUnixTimes()
 
 	return nil
 }
@@ -146,4 +146,12 @@ func (e *Entry) PostGet(s gorp.SqlExecutor) error {
 	e.End = time.Unix(e.EndTime, 0)
 
 	return nil
+}
+
+/*
+	set unix time values based on go time
+*/
+func (e *Entry) setUnixTimes() {
+	e.StartTime = e.Start.Unix()
+	e.EndTime = e.End.Unix()
 }

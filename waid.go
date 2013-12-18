@@ -1,12 +1,14 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/rharriso/waid/entry"
+	"io/ioutil"
 	"log"
-	"os"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -32,7 +34,7 @@ var (
 */
 func main() {
 	// connect to db
-	dbConnect()
+	// dbConnect()
 
 	// get the command and flags
 	flag.Parse()
@@ -82,21 +84,21 @@ func main() {
 */
 func start() {
 	//if active entry, ask to end
-	e := entry.Latest(dbMap)
-	if e != nil && !e.Ended() {
-		// do they want to close the old one?
-		if confirm(fmt.Sprintf("End Activity (%s)", e.Msg)) {
-			stop(false)
-		} else {
-			return
-		}
-	}
+	// e := entry.Latest(dbMap)
+	// if e != nil && !e.Ended() {
+	// 	// do they want to close the old one?
+	// 	if confirm(fmt.Sprintf("End Activity (%s)", e.Msg)) {
+	// 		stop(false)
+	// 	} else {
+	// 		return
+	// 	}
+	// }
 
-	// insert a new entry starting now
-	newEntry := entry.Entry{Msg: *msg}
-	err := dbMap.Insert(&newEntry)
-	doPanic(err)
-	fmt.Println("Starting activity: ", newEntry.Msg)
+	// // insert a new entry starting now
+	// newEntry := entry.Entry{Msg: *msg}
+	// err := dbMap.Insert(&newEntry)
+	// doPanic(err)
+	// fmt.Println("Starting activity: ", newEntry.Msg)
 }
 
 /*
@@ -105,29 +107,29 @@ func start() {
 	Set the end time to now, and save.
 */
 func stop(fromCommand bool) {
-	e := entry.Latest(dbMap)
+	// e := entry.Latest(dbMap)
 
-	// check for active entry
-	if e == nil || e.Ended() {
-		fmt.Println("No active entry")
-		return
-	}
+	// // check for active entry
+	// if e == nil || e.Ended() {
+	// 	fmt.Println("No active entry")
+	// 	return
+	// }
 
-	if fromCommand && *msg != "" {
-		e.Msg = *msg
-	}
+	// if fromCommand && *msg != "" {
+	// 	e.Msg = *msg
+	// }
 
-	if e.Msg == "" {
-		fmt.Print("Enter a message for this entry: ")
-		in := bufio.NewReader(os.Stdin)
-		input, _, err := in.ReadLine()
-		doPanic(err)
-		e.Msg = string(input)
-	}
+	// if e.Msg == "" {
+	// 	fmt.Print("Enter a message for this entry: ")
+	// 	in := bufio.NewReader(os.Stdin)
+	// 	input, _, err := in.ReadLine()
+	// 	doPanic(err)
+	// 	e.Msg = string(input)
+	// }
 
-	e.End = time.Now()
-	dbMap.Update(e)
-	fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
+	// e.End = time.Now()
+	// dbMap.Update(e)
+	// fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
 }
 
 /*
@@ -136,7 +138,16 @@ func stop(fromCommand bool) {
 func add() {
 	e := entry.Entry{Msg: *msg}
 	e.SetDuration(*dur)
-	dbMap.Insert(&e)
+
+	//post json data to the server
+	jsonData, err := json.Marshal(e)
+	doPanic(err)
+	resp, err := http.Post("http://localhost:3000/entries", "json", bytes.NewBuffer(jsonData))
+	doPanic(err)
+
+	entryBytes, err := ioutil.ReadAll(resp.Body)
+	doPanic(err)
+	json.Unmarshal(entryBytes, &e)
 
 	fmt.Println("Activity Added:", e.Msg, "|", e.TimeString())
 }
@@ -145,7 +156,13 @@ func add() {
 	show all the entries in the database
 */
 func list() {
-	entries := entry.All(dbMap)
+	resp, err := http.Get("http://localhost:3000/entries")
+	doPanic(err)
+	entryData, err := ioutil.ReadAll(resp.Body)
+	doPanic(err)
+
+	var entries []entry.Entry
+	json.Unmarshal(entryData, &entries)
 
 	fmt.Println("\nAll Entries")
 	fmt.Println("-------------------------------------")
@@ -177,15 +194,15 @@ func list() {
 	empty the entries
 */
 func clear() {
-	if confirm("Delete all the entries? ") {
-		list()
-		entries := entry.All(dbMap)
+	// if confirm("Delete all the entries? ") {
+	// 	list()
+	// 	entries := entry.All(dbMap)
 
-		for _, e := range entries {
-			dbMap.Delete(e)
-		}
-		fmt.Println("Entries Deleted.")
-	}
+	// 	for _, e := range entries {
+	// 		dbMap.Delete(e)
+	// 	}
+	// 	fmt.Println("Entries Deleted.")
+	// }
 }
 
 /*

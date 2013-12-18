@@ -27,13 +27,13 @@ func main() {
 	})
 
 	// add route
-	m.Post("/entries", binding.Form(entry.Entry{}), func(e entry.Entry, r render.Render) {
+	m.Post("/entries", binding.Json(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
 		dbMap.Insert(&e)
 		r.JSON(200, e)
 	})
 
 	// replace route
-	m.Put("/entries/:id", binding.Form(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
+	m.Put("/entries/:id", binding.Json(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
 		en, err := dbMap.Get(entry.Entry{}, params["id"])
 
 		if err != nil || en == nil {
