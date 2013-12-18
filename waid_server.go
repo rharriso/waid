@@ -9,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rharriso/waid/entry"
 	"os/user"
+	"strconv"
 )
 
 var (
@@ -29,6 +30,30 @@ func main() {
 	m.Post("/entries", binding.Form(entry.Entry{}), func(e entry.Entry, r render.Render) {
 		dbMap.Insert(&e)
 		r.JSON(200, e)
+	})
+
+	// replace route
+	m.Put("/entries/:id", binding.Form(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
+		en, err := dbMap.Get(entry.Entry{}, params["id"])
+
+		if err != nil || en == nil {
+			r.JSON(404, "Entry not found")
+			return
+		}
+		//replace existing
+		e.Id, _ = strconv.ParseInt(params["id"], 10, 64)
+		dbMap.Update(e)
+		r.JSON(200, e)
+	})
+
+	m.Delete("/entries/:id", func(params martini.Params, r render.Render) {
+		e, err := dbMap.Get(entry.Entry{}, params["id"])
+		if err != nil || e == nil {
+			r.JSON(404, "Entry not found")
+			return
+		}
+		dbMap.Delete(e)
+		r.JSON(204, nil)
 	})
 
 	// initialize server
