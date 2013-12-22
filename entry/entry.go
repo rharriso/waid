@@ -65,6 +65,13 @@ func (e *Entry) Started() bool {
 }
 
 /*
+	returns true if the entry is started and not ended
+*/
+func (e *Entry) Active() bool {
+	return e.Started() && !e.Ended()
+}
+
+/*
 	Return formated string describing the entry
 */
 func (e *Entry) TimeString() string {

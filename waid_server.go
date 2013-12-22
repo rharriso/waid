@@ -9,7 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rharriso/waid/entry"
 	"os/user"
-	"strconv"
 )
 
 var (
@@ -26,9 +25,18 @@ func main() {
 		r.JSON(200, entry.All(dbMap))
 	})
 
+	// get lasted
+	m.Get("/entries/latest", binding.Json(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
+		r.JSON(200, entry.Latest(dbMap))
+	})
+
 	// add route
 	m.Post("/entries", binding.Json(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
-		dbMap.Insert(&e)
+		err := dbMap.Insert(&e)
+		if err != nil {
+			r.JSON(404, "Unable to update entry.")
+			return
+		}
 		r.JSON(200, e)
 	})
 
@@ -41,19 +49,12 @@ func main() {
 			return
 		}
 		//replace existing
-		e.Id, _ = strconv.ParseInt(params["id"], 10, 64)
-		dbMap.Update(e)
-		r.JSON(200, e)
-	})
-
-	m.Delete("/entries/:id", func(params martini.Params, r render.Render) {
-		e, err := dbMap.Get(entry.Entry{}, params["id"])
-		if err != nil || e == nil {
-			r.JSON(404, "Entry not found")
+		_, err = dbMap.Update(&e)
+		if err != nil {
+			r.JSON(404, "Unable to update entry.")
 			return
 		}
-		dbMap.Delete(e)
-		r.JSON(204, nil)
+		r.JSON(200, e)
 	})
 
 	// initialize server
