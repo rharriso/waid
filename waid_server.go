@@ -40,6 +40,16 @@ func main() {
 		r.JSON(200, e)
 	})
 
+	// add route
+	m.Delete("/entries", func(r render.Render) {
+		err := dbMap.TruncateTables()
+		if err != nil {
+			r.JSON(404, "Unable to remove all entries.")
+			return
+		}
+		r.JSON(202, nil)
+	})
+
 	// replace route
 	m.Put("/entries/:id", binding.Json(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
 		en, err := dbMap.Get(entry.Entry{}, params["id"])

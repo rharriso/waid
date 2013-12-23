@@ -186,15 +186,11 @@ func list() {
 	empty the entries
 */
 func clear() {
-	// if confirm("Delete all the entries? ") {
-	// 	list()
-	// 	entries := entry.All(dbMap)
-
-	// 	for _, e := range entries {
-	// 		dbMap.Delete(e)
-	// 	}
-	// 	fmt.Println("Entries Deleted.")
-	// }
+	if confirm("Delete all the entries? ") {
+		list()
+		jsonRequest("DELETE", "/entries", nil)
+		fmt.Println("Entries Deleted.")
+	}
 }
 
 /*
@@ -263,9 +259,13 @@ func jsonRequest(reqType string, path string, v interface{}) {
 
 	req, err := http.NewRequest(reqType, fmt.Sprintf("%s%s", SERVER_URL, path), body)
 	doPanic(err)
-	fmt.Println(req)
 	resp, err := client.Do(req)
 	doPanic(err)
+
+	// error status code
+	if resp.StatusCode >= 400 {
+		panic(fmt.Sprintf("Request %d: %s:", resp.StatusCode, resp.Status))
+	}
 
 	// set returned "1data to interface, this will crash if the types aren't good
 	entryData, err := ioutil.ReadAll(resp.Body)
