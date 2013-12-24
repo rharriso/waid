@@ -25,6 +25,16 @@ func main() {
 		r.JSON(200, entry.All(dbMap))
 	})
 
+	// index route
+	m.Get("/entries/:id", func(params martini.Params, r render.Render) {
+		e, err := dbMap.Get(entry.Entry{}, params["id"])
+		if err != nil || e == nil {
+			r.JSON(404, "Entry not found")
+			return
+		}
+		r.JSON(200, e)
+	})
+
 	// get lasted
 	m.Get("/entries/latest", binding.Json(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
 		r.JSON(200, entry.Latest(dbMap))
