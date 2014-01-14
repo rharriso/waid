@@ -22,6 +22,7 @@ var (
 		"start":  flag.NewFlagSet("start", flag.ExitOnError),
 		"stop":   flag.NewFlagSet("stop", flag.ExitOnError),
 		"add":    flag.NewFlagSet("add", flag.ExitOnError),
+		"edit":   flag.NewFlagSet("edit", flag.ExitOnError),
 		"delete": flag.NewFlagSet("delete", flag.ExitOnError),
 		"list":   flag.NewFlagSet("list", flag.ExitOnError),
 		"clear":  flag.NewFlagSet("clear", flag.ExitOnError),
@@ -76,6 +77,8 @@ func main() {
 		add()
 	case "delete":
 		delete()
+	case "edit":
+		edit()
 	case "list":
 		list()
 	case "clear":
@@ -150,6 +153,18 @@ func delete() {
 	if confirm("Are you sure you want to delete?") {
 		dbMap.Delete(&e)
 	}
+}
+
+/*
+  edit an entry by id
+*/
+func edit() {
+	var e entry.Entry
+	err := dbMap.SelectOne(&e, "select * from entries where id=?", id)
+	doPanic(err)
+	e.Msg = *msg
+	e.SetDuration(*dur)
+	dbMap.Update(e)
 }
 
 /*
