@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rharriso/waid/entry"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -240,23 +239,13 @@ func confirm(msg string) bool {
 func jsonRequest(reqType string, path string, v interface{}) {
 	var err error
 	client := http.Client{}
-	var body io.Reader
 
-	switch reqType {
-	case "POST":
-		//post json data to the server
-		jsonData, err := json.Marshal(v)
-		doPanic(err)
-		body = bytes.NewBuffer(jsonData)
-		doPanic(err)
-	case "PUT":
-		//post json data to the server
-		jsonData, err := json.Marshal(v)
-		doPanic(err)
-		body = bytes.NewBuffer(jsonData)
-		doPanic(err)
-	}
+	//prepare json data to send to the server
+	jsonData, err := json.Marshal(v)
+	doPanic(err)
+	body := bytes.NewBuffer(jsonData)
 
+	// create req uest
 	req, err := http.NewRequest(reqType, fmt.Sprintf("%s%s", SERVER_URL, path), body)
 	doPanic(err)
 	resp, err := client.Do(req)
