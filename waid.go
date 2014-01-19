@@ -260,5 +260,6 @@ func jsonRequest(reqType string, path string, v interface{}) {
 	entryData, err := ioutil.ReadAll(resp.Body)
 	doPanic(err)
 
+	// construct json data as requested s
 	json.Unmarshal(entryData, &v)
 }
