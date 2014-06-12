@@ -2,20 +2,25 @@ package main
 
 import (
 	"bufio"
-	"database/sql"
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/coopernurse/gorp"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/rharriso/waid/entry"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
-	"os/user"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/rharriso/waid/entry"
 )
 
 var (
+	// constants
+	SERVER_URL = "http://localhost:3000"
+
 	// list of commands
 	cmdFlags = map[string]*flag.FlagSet{
 		"help":   flag.NewFlagSet("help", flag.ExitOnError),
@@ -29,18 +34,19 @@ var (
 	}
 
 	// flag values
-	msg   *string
-	dur   *string
-	id    *string
-	dbMap *gorp.DbMap
+	msg *string
+	dur *string
 )
 
 /*
 	main ->
 */
 func main() {
-	// connect to db
-	dbConnect()
+	// load env
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
 
 	// get the command and flags
 	flag.Parse()
@@ -95,8 +101,11 @@ func main() {
 */
 func start() {
 	//if active entry, ask to end
-	e := entry.Latest(dbMap)
-	if e != nil && !e.Ended() {
+	var e entry.Entry
+	jsonRequest("GET", "/entries/latest", &e)
+
+	// if this activity is still going
+	if e.Started() && !e.Ended() {
 		// do they want to close the old one?
 		if confirm(fmt.Sprintf("End Activity (%s)", e.Msg)) {
 			stop(false)
@@ -104,12 +113,8 @@ func start() {
 			return
 		}
 	}
-
-	// insert a new entry starting now
-	newEntry := entry.Entry{Msg: *msg}
-	err := dbMap.Insert(&newEntry)
-	doPanic(err)
-	fmt.Println("Starting activity: ", newEntry.Msg)
+	//post the new one
+	jsonRequest("POST", "/entries", &entry.Entry{Msg: *msg})
 }
 
 /*
@@ -118,10 +123,12 @@ func start() {
 	Set the end time to now, and save.
 */
 func stop(fromCommand bool) {
-	e := entry.Latest(dbMap)
+	//if active entry, ask to end
+	var e entry.Entry
+	jsonRequest("GET", "/entries/latest", &e)
 
 	// check for active entry
-	if e == nil || e.Ended() {
+	if e.Started() && e.Ended() {
 		fmt.Println("No active entry")
 		return
 	}
@@ -139,7 +146,8 @@ func stop(fromCommand bool) {
 	}
 
 	e.End = time.Now()
-	dbMap.Update(e)
+	path := fmt.Sprintf("/entries/%d", e.Id)
+	jsonRequest("PUT", path, &e)
 	fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
 }
 
@@ -173,7 +181,7 @@ func edit() {
 func add() {
 	e := entry.Entry{Msg: *msg}
 	e.SetDuration(*dur)
-	dbMap.Insert(&e)
+	jsonRequest("POST", "/entries", &e)
 
 	fmt.Println("Activity Added:", e.Msg, "|", e.TimeString())
 }
@@ -182,7 +190,9 @@ func add() {
 	show all the entries in the database
 */
 func list() {
-	entries := entry.All(dbMap)
+	// get all the entries
+	var entries []entry.Entry
+	jsonRequest("GET", "/entries", &entries)
 
 	fmt.Println("\nAll Entries")
 	fmt.Println("-------------------------------------")
@@ -216,11 +226,7 @@ func list() {
 func clear() {
 	if confirm("Delete all the entries? ") {
 		list()
-		entries := entry.All(dbMap)
-
-		for _, e := range entries {
-			dbMap.Delete(e)
-		}
+		jsonRequest("DELETE", "/entries", nil)
 		fmt.Println("Entries Deleted.")
 	}
 }
@@ -246,22 +252,6 @@ func help() {
 }
 
 /*
-	dbConnect ->
-		connect to databse and create tables maybe
-*/
-func dbConnect() {
-	usr, err := user.Current()
-	doPanic(err)
-	db, err := sql.Open("sqlite3", usr.HomeDir+"/.waid.db")
-	doPanic(err)
-
-	dbMap = &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-	// add entries table
-	dbMap.AddTableWithName(entry.Entry{}, "entries").SetKeys(true, "Id")
-	dbMap.CreateTablesIfNotExists()
-}
-
-/*
 	doPanic
 */
 func doPanic(err error) {
@@ -280,4 +270,36 @@ func confirm(msg string) bool {
 	fmt.Scanf("%s", &answer)
 
 	return strings.ToUpper(answer) == "Y"
+}
+
+/*
+  Utility method for sending request of different types
+*/
+func jsonRequest(reqType string, path string, v interface{}) {
+	var err error
+	client := http.Client{}
+
+	//prepare json data to send to the server
+	jsonData, err := json.Marshal(v)
+	doPanic(err)
+	body := bytes.NewBuffer(jsonData)
+
+	// create req uest
+	req, err := http.NewRequest(reqType, fmt.Sprintf("%s%s", SERVER_URL, path), body)
+	req.SetBasicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
+	doPanic(err)
+	resp, err := client.Do(req)
+	doPanic(err)
+
+	// error status code
+	if resp.StatusCode >= 400 {
+		panic(fmt.Sprintf("Request %d: %s:", resp.StatusCode, resp.Status))
+	}
+
+	// set returned "1data to interface, this will crash if the types aren't good
+	entryData, err := ioutil.ReadAll(resp.Body)
+	doPanic(err)
+
+	// construct json data as requested s
+	json.Unmarshal(entryData, &v)
 }
