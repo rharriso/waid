@@ -23,12 +23,14 @@ var (
 
 	// list of commands
 	cmdFlags = map[string]*flag.FlagSet{
-		"help":  flag.NewFlagSet("help", flag.ExitOnError),
-		"start": flag.NewFlagSet("start", flag.ExitOnError),
-		"stop":  flag.NewFlagSet("stop", flag.ExitOnError),
-		"add":   flag.NewFlagSet("add", flag.ExitOnError),
-		"list":  flag.NewFlagSet("list", flag.ExitOnError),
-		"clear": flag.NewFlagSet("clear", flag.ExitOnError),
+		"help":   flag.NewFlagSet("help", flag.ExitOnError),
+		"start":  flag.NewFlagSet("start", flag.ExitOnError),
+		"stop":   flag.NewFlagSet("stop", flag.ExitOnError),
+		"add":    flag.NewFlagSet("add", flag.ExitOnError),
+		"edit":   flag.NewFlagSet("edit", flag.ExitOnError),
+		"delete": flag.NewFlagSet("delete", flag.ExitOnError),
+		"list":   flag.NewFlagSet("list", flag.ExitOnError),
+		"clear":  flag.NewFlagSet("clear", flag.ExitOnError),
 	}
 
 	// flag values
@@ -68,6 +70,7 @@ func main() {
 	//get message from remaining flags
 	msg = flags.String("m", "", "message for activity")
 	dur = flags.String("t", "", "duration for activity")
+	id = flags.String("i", "", "id of activity")
 	flags.Parse(flag.Args()[1:])
 
 	// run the command with flags
@@ -78,6 +81,10 @@ func main() {
 		stop(true)
 	case "add":
 		add()
+	case "delete":
+		delete()
+	case "edit":
+		edit()
 	case "list":
 		list()
 	case "clear":
@@ -142,6 +149,30 @@ func stop(fromCommand bool) {
 	path := fmt.Sprintf("/entries/%d", e.Id)
 	jsonRequest("PUT", path, &e)
 	fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
+}
+
+/*
+	delete an entry by id
+*/
+func delete() {
+	var e entry.Entry
+	err := dbMap.SelectOne(&e, "select * from entries where id=?", id)
+	doPanic(err)
+	if confirm("Are you sure you want to delete?") {
+		dbMap.Delete(&e)
+	}
+}
+
+/*
+  edit an entry by id
+*/
+func edit() {
+	var e entry.Entry
+	err := dbMap.SelectOne(&e, "select * from entries where id=?", id)
+	doPanic(err)
+	e.Msg = *msg
+	e.SetDuration(*dur)
+	dbMap.Update(e)
 }
 
 /*
