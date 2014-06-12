@@ -2,13 +2,17 @@ package main
 
 import (
 	"database/sql"
+	"os"
+	"os/user"
+
 	"github.com/codegangsta/martini"
 	"github.com/codegangsta/martini-contrib/binding"
 	"github.com/codegangsta/martini-contrib/render"
 	"github.com/coopernurse/gorp"
+	"github.com/joho/godotenv"
+	"github.com/martini-contrib/auth"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rharriso/waid/entry"
-	"os/user"
 )
 
 var (
@@ -16,14 +20,28 @@ var (
 )
 
 func main() {
+	// load env
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+
+	// startup server
 	m := martini.Classic()
 	m.Use(render.Renderer())
+	m.Use(auth.Basic(os.Getenv("USERNAME"), os.Getenv("PASSWORD")))
 	m.Use(dbConnect())
 
 	// index route
 	m.Get("/entries", func(r render.Render) {
 		r.JSON(200, entry.All(dbMap))
 	})
+
+	// get latests entry
+	m.Get("/entries/latest", binding.Json(entry.Entry{}),
+		func(params martini.Params, e entry.Entry, r render.Render) {
+			r.JSON(200, entry.Latest(dbMap))
+		})
 
 	// index route
 	m.Get("/entries/:id", func(params martini.Params, r render.Render) {
@@ -33,11 +51,6 @@ func main() {
 			return
 		}
 		r.JSON(200, e)
-	})
-
-	// get lasted
-	m.Get("/entries/latest", binding.Json(entry.Entry{}), func(params martini.Params, e entry.Entry, r render.Render) {
-		r.JSON(200, entry.Latest(dbMap))
 	})
 
 	// add route

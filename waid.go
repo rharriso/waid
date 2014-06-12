@@ -6,13 +6,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/rharriso/waid/entry"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/rharriso/waid/entry"
 )
 
 var (
@@ -38,6 +40,12 @@ var (
 	main ->
 */
 func main() {
+	// load env
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+
 	// get the command and flags
 	flag.Parse()
 
@@ -247,6 +255,7 @@ func jsonRequest(reqType string, path string, v interface{}) {
 
 	// create req uest
 	req, err := http.NewRequest(reqType, fmt.Sprintf("%s%s", SERVER_URL, path), body)
+	req.SetBasicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
 	doPanic(err)
 	resp, err := client.Do(req)
 	doPanic(err)

@@ -22,3 +22,15 @@ waid [command] [options]
 
 * **-m** - Add a message to the current task on start or stop
 * **-t** - Set the time for a entry (used on add)
+
+### Authentication
+
+Add a .env file to the root of the project
+
+```
+#!bash
+# .env
+USERNAME=your_username
+PASSWORD=super-secret-password
+
+```
