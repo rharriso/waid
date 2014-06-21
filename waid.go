@@ -18,9 +18,6 @@ import (
 )
 
 var (
-	// constants
-	SERVER_URL = "http://localhost:3000"
-
 	// list of commands
 	cmdFlags = map[string]*flag.FlagSet{
 		"help":   flag.NewFlagSet("help", flag.ExitOnError),
@@ -36,11 +33,9 @@ var (
 	// flag values
 	msg *string
 	dur *string
+	id  *string
 )
 
-/*
-	main ->
-*/
 func main() {
 	// load env
 	err := godotenv.Load()
@@ -151,33 +146,22 @@ func stop(fromCommand bool) {
 	fmt.Println("Activity Finished:", e.Msg, "|", e.TimeString())
 }
 
-/*
-	delete an entry by id
-*/
+// delete removes a specific entry from the server
 func delete() {
-	var e entry.Entry
-	err := dbMap.SelectOne(&e, "select * from entries where id=?", id)
-	doPanic(err)
-	if confirm("Are you sure you want to delete?") {
-		dbMap.Delete(&e)
-	}
+	// not done right now
 }
 
-/*
-  edit an entry by id
-*/
+// edit updates an existing entry and then saves it to the server.
 func edit() {
 	var e entry.Entry
-	err := dbMap.SelectOne(&e, "select * from entries where id=?", id)
-	doPanic(err)
+	path := fmt.Sprintf("/entries/%d", id)
+	jsonRequest("GET", path, &e)
 	e.Msg = *msg
 	e.SetDuration(*dur)
-	dbMap.Update(e)
+	jsonRequest("PUT", path, &e)
 }
 
-/*
-	add an entry directly
-*/
+// add creates an entry and posts it to the server
 func add() {
 	e := entry.Entry{Msg: *msg}
 	e.SetDuration(*dur)
@@ -186,9 +170,7 @@ func add() {
 	fmt.Println("Activity Added:", e.Msg, "|", e.TimeString())
 }
 
-/*
-	show all the entries in the database
-*/
+//	list request all entries from the database, and the displays them.
 func list() {
 	// get all the entries
 	var entries []entry.Entry
@@ -220,9 +202,7 @@ func list() {
 		int(total.Seconds())%60)
 }
 
-/*
-	empty the entries
-*/
+// clear request that all entries are deleted
 func clear() {
 	if confirm("Delete all the entries? ") {
 		list()
@@ -231,9 +211,7 @@ func clear() {
 	}
 }
 
-/*
-	Help out the user
-*/
+// help a helpful message to wayward users.
 func help() {
 	fmt.Println("Usage: waid [command] [options]\n")
 
@@ -251,19 +229,14 @@ func help() {
 	fmt.Println("")
 }
 
-/*
-	doPanic
-*/
+//	doPanic panics if the passed error is not null
 func doPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
-/*
-	confirm
-		ask the user if they really want to do that
-*/
+// confirm	waits for standard input, asking the user if they really want to do that
 func confirm(msg string) bool {
 	fmt.Print(fmt.Sprintf("%s (Y/n): ", msg))
 	var answer string
@@ -272,9 +245,8 @@ func confirm(msg string) bool {
 	return strings.ToUpper(answer) == "Y"
 }
 
-/*
-  Utility method for sending request of different types
-*/
+//  jsonRequest makes an http request given a request type,
+//  path and object that should be used in request body and updated by the request.
 func jsonRequest(reqType string, path string, v interface{}) {
 	var err error
 	client := http.Client{}
@@ -285,7 +257,8 @@ func jsonRequest(reqType string, path string, v interface{}) {
 	body := bytes.NewBuffer(jsonData)
 
 	// create req uest
-	req, err := http.NewRequest(reqType, fmt.Sprintf("%s%s", SERVER_URL, path), body)
+	serverPath := fmt.Sprintf("%s:%s%s", os.Getenv("SERVER"), os.Getenv("PORT"), path)
+	req, err := http.NewRequest(reqType, serverPath, body)
 	req.SetBasicAuth(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
 	doPanic(err)
 	resp, err := client.Do(req)
